@@ -6,13 +6,13 @@ const rename = require("gulp-rename");
 const fileinclude = require("gulp-file-include");
 const del = require("del");
 
-// !Styles
+// !	Styles
 const scss = require("gulp-sass");
 const autoprefixer = require("gulp-autoprefixer");
 const groupcssmediaqueries = require("gulp-group-css-media-queries");
 const cleancss = require("gulp-clean-css");
 
-// !JS
+// !	JS
 const uglify = require("gulp-uglify-es").default;
 
 // !Images
@@ -63,7 +63,7 @@ const path = {
 	}
 };
 
-
+// 
 
 const browserSync = () => {
 	browsersync.init({
