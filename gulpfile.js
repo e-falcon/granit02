@@ -38,44 +38,44 @@ const path = {
 	source: {
 		dir: `./${SOURCE_DIR}/`,
 		html: [`./${SOURCE_DIR}/**/*.html`, `!**/${INCLUDE_SUBDIR}/**`],
-		styles: [`${SOURCE_DIR}/${STYLES_SUBDIR}/*.scss`, `!**${INCLUDE_SUBDIR}**`],
-		scripts: [`${SOURCE_DIR}/${SCRIPTS_SUBDIR}/*.js`, `!**${INCLUDE_SUBDIR}**`],
-		images: `${SOURCE_DIR}/${IMAGES_SUBDIR}/**/*.{jpg,png,gif,webp}`,
-		fonts: `${SOURCE_DIR}/${FONTS_SUBDIR}/*.ttf`
+		styles: [`./${SOURCE_DIR}/${STYLES_SUBDIR}/*.scss`, `!**/${INCLUDE_SUBDIR}/**`],
+		scripts: [`./${SOURCE_DIR}/${SCRIPTS_SUBDIR}/*.js`, `!**${INCLUDE_SUBDIR}**`],
+		images: `./${SOURCE_DIR}/${IMAGES_SUBDIR}/**/*.{jpg,png,gif,webp}`,
+		fonts: `./${SOURCE_DIR}/${FONTS_SUBDIR}/*.ttf`
 	},
 	release: {
 		dir: `./${RELEASE_DIR}/`,
-		html: `${RELEASE_DIR}/`,
-		styles: `${RELEASE_DIR}/${STYLES_SUBDIR}/`,
-		scripts: `${RELEASE_DIR}/${SCRIPTS_SUBDIR}/`,
-		images: `${RELEASE_DIR}/${IMAGES_SUBDIR}/`,
-		fonts: `${RELEASE_DIR}/${FONTS_SUBDIR}/`
+		html: `./${RELEASE_DIR}/`,
+		styles: `./${RELEASE_DIR}/${STYLES_SUBDIR}/`,
+		scripts: `./${RELEASE_DIR}/${SCRIPTS_SUBDIR}/`,
+		images: `./${RELEASE_DIR}/${IMAGES_SUBDIR}/`,
+		fonts: `./${RELEASE_DIR}/${FONTS_SUBDIR}/`
 	},
 	build: {
 		dir: `./${BUILD_DIR}/`,
 		html: `./${BUILD_DIR}/`,
-		styles: `${BUILD_DIR}/${STYLES_SUBDIR}/`,
-		scripts: `${BUILD_DIR}/${SCRIPTS_SUBDIR}/`,
-		images: `${BUILD_DIR}/${IMAGES_SUBDIR}/`,
-		fonts: `${BUILD_DIR}/${FONTS_SUBDIR}/`
+		styles: `./${BUILD_DIR}/${STYLES_SUBDIR}/`,
+		scripts: `./${BUILD_DIR}/${SCRIPTS_SUBDIR}/`,
+		images: `./${BUILD_DIR}/${IMAGES_SUBDIR}/`,
+		fonts: `./${BUILD_DIR}/${FONTS_SUBDIR}/`
 	},
 	watch: {
 		html: `./${SOURCE_DIR}/**/*.html`,
-		styles: `${SOURCE_DIR}/${STYLES_SUBDIR}/*.scss`,
-		scripts: `${SOURCE_DIR}/${SCRIPTS_SUBDIR}/*.js`,
-		images: `${SOURCE_DIR}/${IMAGES_SUBDIR}/**/*.{jpg,png,gif,webp}`,
-		fonts: `${SOURCE_DIR}/${FONTS_SUBDIR}/*.ttf`
+		styles: `./${SOURCE_DIR}/${STYLES_SUBDIR}/*.scss`,
+		scripts: `./${SOURCE_DIR}/${SCRIPTS_SUBDIR}/*.js`,
+		images: `./${SOURCE_DIR}/${IMAGES_SUBDIR}/**/*.{jpg,png,gif,webp}`,
+		fonts: `./${SOURCE_DIR}/${FONTS_SUBDIR}/*.ttf`
 	}
 };
 
 const htmlBuild = () => {
 	return src(path.source.html)
 		.pipe(include())
-		.pipe(dest(`./${BUILD_DIR}/`))
+		.pipe(dest(path.build.html))
 }
 
 const htmlRelease = () => {
-	return src(path.build.html)
+	return src(`${path.build.html}*.html`)
 		.pipe(dest(path.release.html))
 }
 
@@ -84,32 +84,34 @@ const watchHtml = () => {
 		.on('change', series(htmlBuild, parallel(htmlRelease, browserSyncReload)))
 }
 
-const styles = () => {
-	return src([`./${SOURCE_DIR}/${STYLES_DIR}/**/*.scss`, `!**/${INCLUDE_DIR}/**/*.scss`])
+const stylesBuild = () => {
+	return src(path.source.styles)
 		.pipe(sass({
 			outputStyle: 'expanded'
 		}).on('error', sass.logError))
 		.pipe(include())
-		.on('error', sass.logError)
-		.pipe(autoprefixer())
-		.pipe(dest(`./${BUILD_DIR}/${STYLES_DIR}`))
+		.pipe(autoprefixer({
+			overrideBrowserslist: ["last 5 versions"]
+		})
+		)
+		.pipe(dest(path.build.styles))
 	// .pipe(notify('Styles processed'))
 }
 
 const stylesRelease = () => (
-	src(`./${BUILD_DIR}/${STYLES_DIR}/**/*.css`)
-		.pipe(dest(`./${RELEASE_DIR}/${STYLES_DIR}`))
+	src(`./${path.build.styles}/**/*.css`)
+		.pipe(dest(path.release.styles))
 )
 
 const watchCSS = () => {
-	watch(`./${SOURCE_DIR}/${STYLES_DIR}/**/*.scss`)
-		.on('change', series(styles, parallel(stylesRelease, () => (browsersync.stream({ match: '**/*.css' })))));
+	return watch(path.source.styles)
+		.on('change', series(stylesBuild, parallel(stylesRelease, browserSyncReload)));
 }
 
 const browserSyncInit = (cb) => {
 	browsersync.init({
 		server: {
-			baseDir: `./${BUILD_DIR}/`
+			baseDir: path.build.dir
 		},
 		port: 5000,
 		notify: false
@@ -123,7 +125,7 @@ const browserSyncReload = (cb) => {
 }
 
 exports.html = htmlBuild;
-exports.default = series(htmlBuild, parallel(htmlRelease, browserSyncInit), watchHtml);
+exports.default = series(htmlBuild, stylesBuild, parallel(htmlRelease, browserSyncInit), parallel(watchHtml, watchCSS));
 // exports.default = series(htmlBuild);
 
 // 
