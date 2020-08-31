@@ -98,14 +98,18 @@ const stylesBuild = () => {
 	// .pipe(notify('Styles processed'))
 }
 
-const stylesRelease = () => (
-	src(`./${path.build.styles}/**/*.css`)
+const stylesRelease = () => {
+	return src(`${path.build.styles}*.css`)
+		.pipe(groupcssmediaqueries())
 		.pipe(dest(path.release.styles))
-)
+}
 
 const watchCSS = () => {
 	return watch(path.source.styles)
-		.on('change', series(stylesBuild, parallel(stylesRelease, browserSyncReload)));
+		.on('change',
+			series(stylesBuild,
+					parallel(stylesRelease,
+						browserSyncReload)));
 }
 
 const browserSyncInit = (cb) => {
@@ -126,9 +130,6 @@ const browserSyncReload = (cb) => {
 
 exports.html = htmlBuild;
 exports.default = series(htmlBuild, stylesBuild, parallel(htmlRelease, browserSyncInit), parallel(watchHtml, watchCSS));
-// exports.default = series(htmlBuild);
-
-// 
 
 const stylesTask = () => {
 	return src(path.src.styles)
