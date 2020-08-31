@@ -7,6 +7,8 @@ const include = require('gulp-include');
 const autoprefixer = require('gulp-autoprefixer');
 const browsersync = require('browser-sync').create();
 
+const prettier = require('gulp-prettier');
+
 const rename = require("gulp-rename");
 const fileinclude = require("gulp-file-include");
 const del = require("del");
@@ -68,9 +70,16 @@ const path = {
 	}
 };
 
+const cleanDirs = (cb) => {
+	let promise = del([`${RELEASE_DIR}/**`, `${BUILD_DIR}/**`]);
+	cb && cb();
+	return promise;
+}
+
 const htmlBuild = () => {
 	return src(path.source.html)
 		.pipe(include())
+		.pipe(prettier({ singleQuote: true }))
 		.pipe(dest(path.build.html))
 }
 
@@ -81,7 +90,10 @@ const htmlRelease = () => {
 
 const watchHtml = () => {
 	return watch(path.watch.html)
-		.on('change', series(htmlBuild, parallel(htmlRelease, browserSyncReload)))
+		.on('change',
+			series(htmlBuild,
+				parallel(htmlRelease,
+					browserSyncReload)))
 }
 
 const stylesBuild = () => {
@@ -91,20 +103,21 @@ const stylesBuild = () => {
 		}).on('error', sass.logError))
 		.pipe(include())
 		.pipe(autoprefixer({
-			overrideBrowserslist: ["last 5 versions"]
+			overrideBrowserslist: ["last 5 versions"],
+			cascade: true
 		})
 		)
 		.pipe(dest(path.build.styles))
-	// .pipe(notify('Styles processed'))
 }
 
 const stylesRelease = () => {
 	return src(`${path.build.styles}*.css`)
 		.pipe(groupcssmediaqueries())
+		.pipe(cleancss())
 		.pipe(dest(path.release.styles))
 }
 
-const watchCSS = () => {
+const watchStyles = () => {
 	return watch(path.source.styles)
 		.on('change',
 			series(stylesBuild,
@@ -113,23 +126,24 @@ const watchCSS = () => {
 }
 
 const browserSyncInit = (cb) => {
-	browsersync.init({
+	let instance = browsersync.init({
 		server: {
 			baseDir: path.build.dir
 		},
 		port: 5000,
 		notify: false
 	});
-	cb();
+	cb && cb();
+	return instance;
 }
 
 const browserSyncReload = (cb) => {
 	browsersync.reload();
-	cb();
+	cb && cb();
 }
 
 exports.html = htmlBuild;
-exports.default = series(htmlBuild, stylesBuild, parallel(htmlRelease, browserSyncInit), parallel(watchHtml, watchCSS));
+exports.default = series(cleanDirs, htmlBuild, stylesBuild, parallel(htmlRelease, stylesRelease, browserSyncInit), parallel(watchHtml, watchStyles));
 
 const stylesTask = () => {
 	return src(path.src.styles)
