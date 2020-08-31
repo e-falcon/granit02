@@ -124,6 +124,11 @@ const browserSyncReload = (cb) => {
 	cb();
 }
 
+const browserSyncStream = (cb) => {
+	browsersync.stream();
+	cb();
+}
+
 exports.html = htmlBuild;
 exports.default = series(htmlBuild, stylesBuild, parallel(htmlRelease, browserSyncInit), parallel(watchHtml, watchCSS));
 // exports.default = series(htmlBuild);
