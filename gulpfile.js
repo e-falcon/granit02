@@ -42,7 +42,7 @@ const path = {
 		html: [`./${SOURCE_DIR}/**/*.html`, `!**/${INCLUDE_SUBDIR}/**`],
 		styles: [`./${SOURCE_DIR}/${STYLES_SUBDIR}/*.scss`, `!**/${INCLUDE_SUBDIR}/**`],
 		scripts: [`./${SOURCE_DIR}/${SCRIPTS_SUBDIR}/*.js`, `!**${INCLUDE_SUBDIR}**`],
-		images: `./${SOURCE_DIR}/${IMAGES_SUBDIR}/**/*.{jpg,png,gif,webp}`,
+		images: `./${SOURCE_DIR}/${IMAGES_SUBDIR}/**/*.{jpg,png,gif,webp,svg}`,
 		fonts: `./${SOURCE_DIR}/${FONTS_SUBDIR}/*.ttf`
 	},
 	release: {
@@ -125,6 +125,11 @@ const watchStyles = () => {
 						browserSyncReload)));
 }
 
+const imagesBuild = () => {
+	return src(path.source.images)
+		.pipe(dest(path.build.images));
+}
+
 const browserSyncInit = (cb) => {
 	let instance = browsersync.init({
 		server: {
@@ -143,7 +148,7 @@ const browserSyncReload = (cb) => {
 }
 
 exports.html = htmlBuild;
-exports.default = series(cleanDirs, htmlBuild, stylesBuild, parallel(htmlRelease, stylesRelease, browserSyncInit), parallel(watchHtml, watchStyles));
+exports.default = series(cleanDirs, htmlBuild, stylesBuild, imagesBuild, parallel(htmlRelease, stylesRelease, browserSyncInit), parallel(watchHtml, watchStyles));
 
 const stylesTask = () => {
 	return src(path.src.styles)
