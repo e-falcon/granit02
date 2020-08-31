@@ -1,4 +1,13 @@
+.header {
+  background: url("../images/granit-bg2.jpg") 0 0 repeat-x;
+  height: 64px;
+  width: 1220px;
+  display: block;
+  color: white;
+}
+
 body {
+<<<<<<< HEAD
   background-color: #994907;
   display: -webkit-box;
   display: -ms-flexbox;
@@ -40,4 +49,10 @@ div {
   div {
     font-size: 20px;
   }
+=======
+  background-color: #ffffff;
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+>>>>>>> c345a3050ad14eb31b48af8a2e590360ff6f6067
 }

@@ -7,6 +7,8 @@ const include = require('gulp-include');
 const autoprefixer = require('gulp-autoprefixer');
 const browsersync = require('browser-sync').create();
 
+const prettier = require('gulp-prettier');
+
 const rename = require("gulp-rename");
 const fileinclude = require("gulp-file-include");
 const del = require("del");
@@ -40,7 +42,7 @@ const path = {
 		html: [`./${SOURCE_DIR}/**/*.html`, `!**/${INCLUDE_SUBDIR}/**`],
 		styles: [`./${SOURCE_DIR}/${STYLES_SUBDIR}/*.scss`, `!**/${INCLUDE_SUBDIR}/**`],
 		scripts: [`./${SOURCE_DIR}/${SCRIPTS_SUBDIR}/*.js`, `!**${INCLUDE_SUBDIR}**`],
-		images: `./${SOURCE_DIR}/${IMAGES_SUBDIR}/**/*.{jpg,png,gif,webp}`,
+		images: `./${SOURCE_DIR}/${IMAGES_SUBDIR}/**/*.{jpg,png,gif,webp,svg}`,
 		fonts: `./${SOURCE_DIR}/${FONTS_SUBDIR}/*.ttf`
 	},
 	release: {
@@ -68,9 +70,16 @@ const path = {
 	}
 };
 
+const cleanDirs = (cb) => {
+	let promise = del([`${RELEASE_DIR}/**`, `${BUILD_DIR}/**`]);
+	cb && cb();
+	return promise;
+}
+
 const htmlBuild = () => {
 	return src(path.source.html)
 		.pipe(include())
+		.pipe(prettier({ singleQuote: true }))
 		.pipe(dest(path.build.html))
 }
 
@@ -81,7 +90,10 @@ const htmlRelease = () => {
 
 const watchHtml = () => {
 	return watch(path.watch.html)
-		.on('change', series(htmlBuild, parallel(htmlRelease, browserSyncReload)))
+		.on('change',
+			series(htmlBuild,
+				parallel(htmlRelease,
+					browserSyncReload)))
 }
 
 const stylesBuild = () => {
@@ -91,37 +103,48 @@ const stylesBuild = () => {
 		}).on('error', sass.logError))
 		.pipe(include())
 		.pipe(autoprefixer({
-			overrideBrowserslist: ["last 5 versions"]
+			overrideBrowserslist: ["last 5 versions"],
+			cascade: true
 		})
 		)
 		.pipe(dest(path.build.styles))
-	// .pipe(notify('Styles processed'))
 }
 
-const stylesRelease = () => (
-	src(`./${path.build.styles}/**/*.css`)
+const stylesRelease = () => {
+	return src(`${path.build.styles}*.css`)
+		.pipe(groupcssmediaqueries())
+		.pipe(cleancss())
 		.pipe(dest(path.release.styles))
-)
+}
 
-const watchCSS = () => {
+const watchStyles = () => {
 	return watch(path.source.styles)
-		.on('change', series(stylesBuild, parallel(stylesRelease, browserSyncReload)));
+		.on('change',
+			series(stylesBuild,
+					parallel(stylesRelease,
+						browserSyncReload)));
+}
+
+const imagesBuild = () => {
+	return src(path.source.images)
+		.pipe(dest(path.build.images));
 }
 
 const browserSyncInit = (cb) => {
-	browsersync.init({
+	let instance = browsersync.init({
 		server: {
 			baseDir: path.build.dir
 		},
 		port: 5000,
 		notify: false
 	});
-	cb();
+	cb && cb();
+	return instance;
 }
 
 const browserSyncReload = (cb) => {
 	browsersync.reload();
-	cb();
+	cb && cb();
 }
 
 const browserSyncStream = (cb) => {
@@ -130,10 +153,7 @@ const browserSyncStream = (cb) => {
 }
 
 exports.html = htmlBuild;
-exports.default = series(htmlBuild, stylesBuild, parallel(htmlRelease, browserSyncInit), parallel(watchHtml, watchCSS));
-// exports.default = series(htmlBuild);
-
-// 
+exports.default = series(cleanDirs, htmlBuild, stylesBuild, imagesBuild, parallel(htmlRelease, stylesRelease, browserSyncInit), parallel(watchHtml, watchStyles));
 
 const stylesTask = () => {
 	return src(path.src.styles)
