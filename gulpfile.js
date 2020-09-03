@@ -27,6 +27,12 @@ const webp = require("gulp-webp");
 const webphtml = require("gulp-webp-html");
 const webpcss = require('gulp-webp-css');
 
+const ttf2woff = require('gulp-ttf2woff');
+const ttf2woff2 = require('gulp-ttf2woff2');
+const fonter = require('gulp-fonter');
+
+const fs = require('fs');
+
 const SOURCE_DIR = 'source';
 const BUILD_DIR = 'build';
 const RELEASE_DIR = 'release';
@@ -101,12 +107,12 @@ const stylesBuild = () => {
 		.pipe(sass({
 			outputStyle: 'expanded'
 		}).on('error', sass.logError))
-		.pipe(include())
-		.pipe(autoprefixer({
-			overrideBrowserslist: ["last 5 versions"],
-			cascade: true
-		})
-		)
+		// .pipe(include())
+		// .pipe(autoprefixer({
+		// 	overrideBrowserslist: ["last 5 versions"],
+		// 	cascade: true
+		// })
+		// )
 		.pipe(dest(path.build.styles))
 }
 
@@ -121,13 +127,32 @@ const watchStyles = () => {
 	return watch(path.source.styles)
 		.on('change',
 			series(stylesBuild,
-					parallel(stylesRelease,
-						browserSyncReload)));
+				parallel(stylesRelease,
+					browserSyncReload)));
 }
 
 const imagesBuild = () => {
 	return src(path.source.images)
 		.pipe(dest(path.build.images));
+}
+
+const fontsBuild = () => {
+	return src(path.source.fonts)
+		.pipe(ttf2woff())
+		.pipe(dest(path.build.fonts))
+		.pipe(src(path.source.fonts))
+		.pipe(ttf2woff2())
+		.pipe(dest(path.build.fonts))
+		.pipe(src(path.source.fonts))
+		.pipe(dest(path.build.fonts));
+}
+
+const otf2ttf = () => {
+	return src(`./${SOURCE_DIR}/${FONTS_SUBDIR}/*.otf`)
+		.pipe(fonter({
+			formats: ['ttf']
+		}))
+		.pipe(dest(`./${SOURCE_DIR}/${FONTS_SUBDIR}/`));
 }
 
 const browserSyncInit = (cb) => {
@@ -149,11 +174,16 @@ const browserSyncReload = (cb) => {
 
 const browserSyncStream = (cb) => {
 	browsersync.stream();
-	cb();
+	cb && cb();
+}
+
+const LOG = (cb) => {
+	console.log('LOG...');
+	cb && cb();
 }
 
 exports.html = htmlBuild;
-exports.default = series(cleanDirs, htmlBuild, stylesBuild, imagesBuild, parallel(htmlRelease, stylesRelease, browserSyncInit), parallel(watchHtml, watchStyles));
+exports.default = series(cleanDirs, parallel(otf2ttf, htmlBuild, stylesBuild, imagesBuild, fontsBuild), parallel(htmlRelease, stylesRelease, browserSyncInit), parallel(watchHtml, watchStyles));
 
 const stylesTask = () => {
 	return src(path.src.styles)

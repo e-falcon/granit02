@@ -1,0 +1,5 @@
+@import "mixins.scss";
+@include font("PFDin", "../fonts/pfdintextcondpro-regular", "400", "normal");
+@include font("PFDin", "../fonts/pfdintextcondpro-medium", "500", "normal");
+@include font("ceremonious", "../fonts/ceremonious_one", "400", "normal");
+@include font("BravoRGRegular", "../fonts/BravoRGRegular", "400", "normal");
